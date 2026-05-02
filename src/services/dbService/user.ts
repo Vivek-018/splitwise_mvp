@@ -6,14 +6,18 @@ import bcrypt from "bcrypt";
 import { CreateUserBody } from "../../interfaces";
 import { UserAccountStatus } from "../../enums";
 
+const asServiceError = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof ApiError) return error;
+  if (error instanceof Error) return new Error(`${fallbackMessage}: ${error.message}`);
+  return new Error(`${fallbackMessage}: ${String(error)}`);
+};
+
 export default class User {
   static findByEmail = async (email: string): Promise<User | undefined> => {
     try {
       return await db.query.users.findFirst({ where: eq(users.email, email) });
     } catch (error) {
-      throw new Error(
-        `Failed to fetch user by email: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to fetch user by email");
     }
   };
 
@@ -27,9 +31,7 @@ export default class User {
       });
       return user;
     } catch (error) {
-      throw new Error(
-        `Failed to fetch user by id: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to fetch user by id");
     }
   };
 
@@ -38,9 +40,7 @@ export default class User {
       const [user] = await db.insert(users).values(data).returning();
       return user;
     } catch (error) {
-      throw new Error(
-        `Failed while creating user: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed while creating user");
     }
   };
 
@@ -59,22 +59,18 @@ export default class User {
       const { passwordHash: _, ...safeUser } = user;
       return safeUser;
     } catch (error) {
-      throw new Error(
-        `Failed to create user: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to create user");
     }
   };
 
   static getUser = async (userId: string) => {
     try {
       const user = await this.findById(userId);
-      if (!user) throw new Error("User not found");
+      if (!user) throw new ApiError(404, "User not found");
       const { passwordHash: _, ...safeUser } = user;
       return safeUser;
     } catch (error) {
-      throw new Error(
-        `Failed to fetch user: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to fetch user");
     }
   };
 
@@ -84,13 +80,13 @@ export default class User {
   ) => {
     try {
       const user = await User.findById(userId);
-      if (!user) throw new Error("User not found");
+      if (!user) throw new ApiError(404, "User not found");
 
       // If updating email, check it's not already taken by someone else
       if (data.email && data.email !== user.email) {
         const existing = await User.findByEmail(data.email);
         if (existing)
-          throw new Error("Email is already in use by another account");
+          throw new ApiError(409, "Email is already in use by another account");
       }
 
       const [updated] = await db
@@ -107,19 +103,17 @@ export default class User {
 
       const { passwordHash: _, ...safeUser } = updated;
       return safeUser;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to update user: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch (error) {
+      throw asServiceError(error, "Failed to update user");
     }
   };
 
   static deleteUser = async (userId: string) => {
     try {
       const user = await User.findById(userId);
-      if (!user) throw new Error("User not found");
+      if (!user) throw new ApiError(404, "User not found");
       if (user.accountStatus === "deleted")
-        throw new Error("Account is already deleted");
+        throw new ApiError(409, "Account is already deleted");
 
       await db
         .update(users)
@@ -129,9 +123,7 @@ export default class User {
         })
         .where(eq(users.id, userId));
     } catch (error) {
-      throw new Error(
-        `Failed to delete user: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to delete user");
     }
   };
 }

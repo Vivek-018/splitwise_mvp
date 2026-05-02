@@ -2,6 +2,11 @@ import { eq, or, sql } from "drizzle-orm";
 import { db } from "../../config/db";
 import { balances } from "../../models/schema";
 
+const asServiceError = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof Error) return new Error(`${fallbackMessage}: ${error.message}`);
+  return new Error(`${fallbackMessage}: ${String(error)}`);
+};
+
 export default class Balance {
   // ─── Repository-level methods ─────────────────────────────────────────────
 
@@ -13,6 +18,7 @@ export default class Balance {
     payerId: string,
     otherId: string,
     amount: number,
+    dbExecutor: any = db,
   ) => {
     try {
       const [userId, otherUserId, adjustedAmount] =
@@ -20,7 +26,7 @@ export default class Balance {
           ? [payerId, otherId, amount]
           : [otherId, payerId, -amount];
 
-      await db
+      await dbExecutor
         .insert(balances)
         .values({
           userId,
@@ -34,9 +40,7 @@ export default class Balance {
           },
         });
     } catch (error) {
-      throw new Error(
-        `Failed to update balance: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to update balance");
     }
   };
 
@@ -49,9 +53,7 @@ export default class Balance {
         ),
       });
     } catch (error) {
-      throw new Error(
-        `Failed to fetch user balances: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to fetch user balances");
     }
   };
 
@@ -78,9 +80,7 @@ export default class Balance {
         })
         .filter((b) => b.amount !== 0);
     } catch (error) {
-      throw new Error(
-        `Failed to fetch user balances: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw asServiceError(error, "Failed to fetch user balances");
     }
   };
 }

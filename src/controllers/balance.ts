@@ -2,6 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import dbService from "../services/dbService";
 import { ApiError } from "../utils/ApiError";
 
+const getErrorDetails = (error: unknown) => {
+  if (error instanceof ApiError) {
+    return { statusCode: error.statusCode, message: error.message };
+  }
+  if (error instanceof Error) {
+    return { statusCode: 500, message: error.message };
+  }
+  return { statusCode: 500, message: "Unexpected error occurred" };
+};
+
 export default class BalanceController {
   static getMyBalances = async (
     req: Request,
@@ -14,9 +24,12 @@ export default class BalanceController {
       const data = await dbService.Balance.getMyBalances(userId);
       res.json({ success: true, data });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to fetch balance" });
+      console.error("BalanceController.getMyBalances failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to fetch balance: ${message}`,
+      });
     }
   };
 }

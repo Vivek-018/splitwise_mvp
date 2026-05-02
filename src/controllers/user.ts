@@ -2,15 +2,28 @@ import dbService from "../services/dbService";
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/ApiError";
 
+const getErrorDetails = (error: unknown) => {
+  if (error instanceof ApiError) {
+    return { statusCode: error.statusCode, message: error.message };
+  }
+  if (error instanceof Error) {
+    return { statusCode: 500, message: error.message };
+  }
+  return { statusCode: 500, message: "Unexpected error occurred" };
+};
+
 export default class UserController {
   static create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = await dbService.User.createUser(req.body);
       res.status(201).json({ success: true, data: user });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: `Failed to create user: ${error}`});
+      console.error("UserController.create failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to create user: ${message}`,
+      });
     }
   };
 
@@ -25,9 +38,12 @@ export default class UserController {
       const user = await dbService.User.getUser(userId);
       res.json({ success: true, data: user });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to fetch user details" });
+      console.error("UserController.getMe failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to fetch user details: ${message}`,
+      });
     }
   };
 
@@ -54,10 +70,13 @@ export default class UserController {
       });
 
       res.json({ success: true, data: user });
-    } catch (error: any) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to update user details" });
+    } catch (error) {
+      console.error("UserController.updateMe failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to update user details: ${message}`,
+      });
     }
   };
 
@@ -73,9 +92,12 @@ export default class UserController {
       await dbService.User.deleteUser(userId);
       res.json({ success: true, message: "Account deleted successfully" });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to delete user account" });
+      console.error("UserController.deleteMe failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to delete user account: ${message}`,
+      });
     }
   };
 }

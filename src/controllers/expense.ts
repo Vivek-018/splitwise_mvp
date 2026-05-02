@@ -8,6 +8,16 @@ const getUserId = (req: Request): string => {
   return id;
 };
 
+const getErrorDetails = (error: unknown) => {
+  if (error instanceof ApiError) {
+    return { statusCode: error.statusCode, message: error.message };
+  }
+  if (error instanceof Error) {
+    return { statusCode: 500, message: error.message };
+  }
+  return { statusCode: 500, message: "Unexpected error occurred" };
+};
+
 export default class ExpenseController {
   static create = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -15,9 +25,12 @@ export default class ExpenseController {
       const expense = await dbService.Expense.createExpense(userId, req.body);
       res.status(201).json({ success: true, data: expense });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: `Failed to create expense:${error}` });
+      console.error("ExpenseController.create failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to create expense: ${message}`,
+      });
     }
   };
 
@@ -28,9 +41,12 @@ export default class ExpenseController {
       const expense = await dbService.Expense.getExpense(id, userId);
       res.json({ success: true, data: expense });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to fetch expense" });
+      console.error("ExpenseController.getOne failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to fetch expense: ${message}`,
+      });
     }
   };
 
@@ -44,9 +60,12 @@ export default class ExpenseController {
       );
       res.json({ success: true, data: expense });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to update expense" });
+      console.error("ExpenseController.update failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to update expense: ${message}`,
+      });
     }
   };
 
@@ -56,9 +75,12 @@ export default class ExpenseController {
       await dbService.Expense.deleteExpense(req.params.id as string, userId);
       res.json({ success: true, message: "Expense deleted" });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to delete expense" });
+      console.error("ExpenseController.remove failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to delete expense: ${message}`,
+      });
     }
   };
 
@@ -82,9 +104,12 @@ export default class ExpenseController {
       );
       res.json({ success: true, data: logs });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ status: false, message: "Failed to fetch activity log" });
+      console.error("ExpenseController.activityLog failed:", error);
+      const { statusCode, message } = getErrorDetails(error);
+      return res.status(statusCode).json({
+        success: false,
+        message: `Failed to fetch activity log: ${message}`,
+      });
     }
   };
 }
