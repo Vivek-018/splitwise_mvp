@@ -25,7 +25,7 @@ defaultRoutes.forEach(({ path, route }) => {
 
 // Health check endpoint
 router.get("/",async(req,res)=>{
-  return res.status(200).send({ status:true, message: "Welcome to SplitWise MVP" });
+  return res.status(200).send({ success: true, message: "Welcome to SplitWise MVP API" });
 });
 
 export default router;
