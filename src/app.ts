@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import router from "./routes/index.js";
 import { connectDB } from "./config/db.js";
+import { startMonthlyBalanceEmailWorker } from "./workers/monthlyBalanceEmail.worker.js";
 
 const app = express();
 
@@ -12,6 +13,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/", router);
 const startServer = async () => {
   await connectDB();
+
+  startMonthlyBalanceEmailWorker();
 
   const server = app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);

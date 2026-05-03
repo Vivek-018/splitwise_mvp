@@ -90,9 +90,31 @@ export const balances = pgTable(
   }),
 );
 
+/**
+ * One row per user per calendar month when the monthly balance email was sent.
+ * Prevents duplicate sends if the job retries or the server restarts.
+ */
+export const monthlyBalanceReportSent = pgTable(
+  "monthly_balance_report_sent",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Period covered by the email, e.g. "2026-04" for April */
+    reportPeriod: varchar("report_period", { length: 7 }).notNull(),
+    sentAt: timestamp("sent_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueUserPeriod: unique().on(table.userId, table.reportPeriod),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 export type ExpenseMember = typeof expenseMembers.$inferSelect;
 export type Balance = typeof balances.$inferSelect;
+export type MonthlyBalanceReportSent =
+  typeof monthlyBalanceReportSent.$inferSelect;

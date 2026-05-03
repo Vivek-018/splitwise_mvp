@@ -15,6 +15,13 @@
       "when": 1777749726782,
       "tag": "0001_gray_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777793162197,
+      "tag": "0002_glossy_psylocke",
+      "breakpoints": true
     }
   ]
 }
